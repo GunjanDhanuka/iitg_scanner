@@ -16,7 +16,7 @@ import 'package:iitg_idcard_scanner/stores/otp_login_store.dart';
 import 'package:provider/provider.dart';
 
 //The number of minutes upto which the QR would be considered valid
-int maxMinutes = 1;
+int maxMinutes = 10;
 final _firestore = FirebaseFirestore.instance;
 
 class ScanQR extends StatefulWidget {
@@ -246,6 +246,8 @@ class _ScanQRState extends State<ScanQR> {
                               Duration difference =
                                   DateTime.now().difference(timeScanned);
                               int minutes = difference.inMinutes;
+                              bool checkFirebase = await checkDateFirebase(
+                                  rollNumber, email, datewithT);
 
                               if (minutes > maxMinutes ||
                                   !checkRoll(rollNumber)) {
@@ -257,15 +259,27 @@ class _ScanQRState extends State<ScanQR> {
                                         MyColors.white));
                                 ScaffoldMessenger.of(context)
                                     .showSnackBar(badReadSnackBar);
+                              } else if (!checkFirebase) {
+                                final invalidEntrySnackbar = SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    backgroundColor: MyColors.black,
+                                    content: MyFonts().body(
+                                        'Your Data was not found in the database. Try generating the QR code again.',
+                                        MyColors.white));
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(invalidEntrySnackbar);
                               } else {
                                 // Send to a Loader Widget temporarily
                                 showDialog(
                                     context: context,
                                     builder: (BuildContext context) =>
                                         loadingDialog(context));
+
                                 Map checkedResult =
                                     await checkRollMess(rollNumber, email);
-                                if (checkedResult['isPresent']&&checkedResult['hostel']==hostel) {
+                                if (checkedResult['isPresent'] &&
+                                    checkedResult['hostel'] == hostel &&
+                                    checkFirebase) {
                                   _firestore.collection('entries').add({
                                     "email": email,
                                     "time": timeScanned.toString(),
@@ -397,4 +411,23 @@ class _ScanQRState extends State<ScanQR> {
       ));
     });
   }
+}
+
+Future<bool> checkDateFirebase(String roll, String email, String date) async {
+  bool found = false;
+  await _firestore
+      .collection('students')
+      .where('email', isEqualTo: email)
+      .get()
+      .then((QuerySnapshot querySnapshot) {
+    querySnapshot.docs.forEach((doc) {
+      print(doc.data());
+      if (doc['timestamp'] == date) {
+        print('****Timestamp found in firebase database****');
+        found = true;
+      }
+    });
+  });
+
+  return found;
 }
