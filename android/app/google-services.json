@@ -131,6 +131,14 @@
           }
         },
         {
+          "client_id": "571795313541-9kh1mhq4d5verjgc6akp65mumj19sfmi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.swc_iitg.iitg_idcard_scanner",
+            "certificate_hash": "e4d1e85bd631de6e4a079145e25d4673320b09cd"
+          }
+        },
+        {
           "client_id": "571795313541-aed07pkei96b4jom750jrieg1rl02mlu.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

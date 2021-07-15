@@ -8,6 +8,7 @@ import 'package:mobx/mobx.dart';
 import 'package:iitg_idcard_scanner/pages/homeManagement.dart';
 import 'package:iitg_idcard_scanner/pages/microsoft.dart';
 import 'package:iitg_idcard_scanner/pages/otp_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'otp_login_store.g.dart';
 
@@ -30,11 +31,18 @@ abstract class LoginStoreBase with Store {
   @observable
   User firebaseUser;
   final _firestore = FirebaseFirestore.instance;
+  @observable
+  Map<String, String> userData;
 
   @action
   Future<bool> isAlreadyAuthenticated() async {
     firebaseUser = await _auth.currentUser;
     if (firebaseUser != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userData = {};
+      userData.addAll({
+        'hostel': prefs.getString('mess_manager_hostel')??'xyz',
+      });
       return true;
     } else {
       return false;
@@ -175,6 +183,11 @@ abstract class LoginStoreBase with Store {
 
     if (await checkPhoneFirebase(firebaseUser.phoneNumber)) {
       print('\n\n\nFound number\n\n\n');
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userData = {};
+      userData.addAll({
+        'hostel': prefs.getString('mess_manager_hostel')??'xyz',
+      });
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => ScanQR()),
           (Route<dynamic> route) => false);
@@ -207,7 +220,11 @@ abstract class LoginStoreBase with Store {
       print(phoneNumber);
       print(doc.get('phone').toString());
       if (phoneNumber == doc.get('phone').toString())
-        return true;
+        {
+          SharedPreferences preferences = await SharedPreferences.getInstance();
+          preferences.setString('mess_manager_hostel', doc.get('hostel'));
+          return true;
+        }
     }
     return false;
   }
@@ -219,5 +236,6 @@ abstract class LoginStoreBase with Store {
         MaterialPageRoute(builder: (_) => MicrosoftLogin()),
         (Route<dynamic> route) => false);
     firebaseUser = null;
+    userData = null;
   }
 }

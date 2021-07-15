@@ -77,6 +77,7 @@ class _ScanQRState extends State<ScanQR> {
   @override
   Widget build(BuildContext context) {
     return Consumer<otpLoginStore>(builder: (_, otpStore, __) {
+      hostel = otpStore.userData['hostel'];
       return SafeArea(
           child: Scaffold(
         // appBar: AppBar(
@@ -264,11 +265,11 @@ class _ScanQRState extends State<ScanQR> {
                                         loadingDialog(context));
                                 Map checkedResult =
                                     await checkRollMess(rollNumber, email);
-                                if (checkedResult['isPresent']) {
+                                if (checkedResult['isPresent']&&checkedResult['hostel']==hostel) {
                                   _firestore.collection('entries').add({
                                     "email": email,
                                     "time": timeScanned.toString(),
-                                    "hostel": "subansiri"
+                                    "hostel": checkedResult['hostel']
                                   });
                                   Navigator.pop(context);
                                   Navigator.push(

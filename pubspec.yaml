@@ -46,6 +46,7 @@ dependencies:
   numeric_keyboard: ^1.1.0
   flutter_mobx: ^1.1.0+2
   fluttertoast: ^8.0.7
+  shared_preferences: ^0.5.7+3
 
 dev_dependencies:
   flutter_test:
