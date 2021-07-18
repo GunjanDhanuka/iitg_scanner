@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
@@ -16,7 +18,7 @@ import 'package:iitg_idcard_scanner/stores/otp_login_store.dart';
 import 'package:provider/provider.dart';
 
 //The number of minutes upto which the QR would be considered valid
-int maxMinutes = 10;
+int maxMinutes = 2;
 final _firestore = FirebaseFirestore.instance;
 
 class ScanQR extends StatefulWidget {
@@ -42,6 +44,7 @@ class _ScanQRState extends State<ScanQR> {
   String rollNumber = "";
   String email = "";
   String hostel = "subansiri";
+  bool scanResult = false;
 
   Future<String> scanQRNormal() async {
     try {
@@ -149,7 +152,7 @@ class _ScanQRState extends State<ScanQR> {
                         ),
                         Container(
                           child: Text(
-                            email,
+                            scanResult ? email : "--❌--",
                             style: GoogleFonts.rubik(
                                 fontSize: 20, fontWeight: FontWeight.w500),
                           ),
@@ -177,7 +180,7 @@ class _ScanQRState extends State<ScanQR> {
                         ),
                         Container(
                           child: Text(
-                            rollNumber,
+                            scanResult ? rollNumber : "--❌--",
                             style: GoogleFonts.rubik(
                                 fontSize: 20, fontWeight: FontWeight.w500),
                           ),
@@ -205,7 +208,7 @@ class _ScanQRState extends State<ScanQR> {
                         ),
                         Container(
                           child: Text(
-                            hostel,
+                            scanResult ? hostel : "--❌--",
                             style: GoogleFonts.rubik(
                                 fontSize: 20, fontWeight: FontWeight.w500),
                           ),
@@ -247,43 +250,94 @@ class _ScanQRState extends State<ScanQR> {
                                   DateTime.now().difference(timeScanned);
                               int minutes = difference.inMinutes;
                               bool checkFirebase = await checkDateFirebase(
-                                  rollNumber, email, datewithT);
+                                  rollNumber, email, datewithT,userId,hostel);
 
                               if (minutes > maxMinutes ||
                                   !checkRoll(rollNumber)) {
-                                final badReadSnackBar = SnackBar(
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: MyColors.black,
-                                    content: MyFonts().body(
-                                        'Bad read! Please try again or re-generate the QR Code.',
-                                        MyColors.white));
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(badReadSnackBar);
-                              } else if (!checkFirebase) {
-                                final invalidEntrySnackbar = SnackBar(
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: MyColors.black,
-                                    content: MyFonts().body(
-                                        'Your Data was not found in the database. Try generating the QR code again.',
-                                        MyColors.white));
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(invalidEntrySnackbar);
+                                showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return Container(
+                                        height: 100.0,
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(
+                                              sigmaX: 10, sigmaY: 10),
+                                          child: SimpleDialog(
+                                            title: Text(
+                                              "Wrong QR code",
+                                              style: GoogleFonts.rubik(
+                                                  color: Colors.red,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w500),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            children: <Widget>[
+                                              SizedBox(
+                                                height: 7.0,
+                                              ),
+                                              Column(
+                                                children: [
+                                                  Text(
+                                                    "Please regenerate!",
+                                                    style: GoogleFonts.rubik(
+                                                        color: Colors.indigo,
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                        FontWeight.w500),
+                                                  ),
+                                                  SizedBox(
+                                                    height: 10.0,
+                                                  ),
+                                                  RaisedButton(
+                                                    // color: Colors.green,
+                                                    // shape: RoundedRectangleBorder(
+                                                    //   borderRadius:
+                                                    //       BorderRadius.circular(25.0),
+
+                                                    color: Colors.indigo,
+                                                    padding: EdgeInsets.all(20),
+                                                    elevation: 2.0,
+                                                    shape:
+                                                    RoundedRectangleBorder(
+                                                        borderRadius:
+                                                        BorderRadius
+                                                            .circular(
+                                                            25)),
+
+                                                    child: Text(
+                                                      "OK",
+                                                      style: GoogleFonts.rubik(
+                                                          color: Colors.white,
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                          FontWeight.w500),
+                                                    ),
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      setState(() {
+                                                        scanResult = false;
+                                                      });
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        //),
+                                      );
+                                    });
                               } else {
                                 // Send to a Loader Widget temporarily
                                 showDialog(
                                     context: context,
                                     builder: (BuildContext context) =>
                                         loadingDialog(context));
-
-                                Map checkedResult =
-                                    await checkRollMess(rollNumber, email);
-                                if (checkedResult['isPresent'] &&
-                                    checkedResult['hostel'] == hostel &&
-                                    checkFirebase) {
+                                if (checkFirebase) {
                                   _firestore.collection('entries').add({
                                     "email": email,
                                     "time": timeScanned.toString(),
-                                    "hostel": checkedResult['hostel']
+                                    "hostel": hostel
                                   });
                                   Navigator.pop(context);
                                   Navigator.push(
@@ -293,9 +347,15 @@ class _ScanQRState extends State<ScanQR> {
                                               Approved(
                                                 rollNumber: rollNumber,
                                               )));
+                                  setState(() {
+                                    scanResult = true;
+                                  });
                                 } else {
                                   Navigator.pop(context);
                                   Navigator.pushNamed(context, Rejected.id);
+                                  setState(() {
+                                    scanResult=false;
+                                  });
                                 }
                               }
                             },
@@ -413,20 +473,22 @@ class _ScanQRState extends State<ScanQR> {
   }
 }
 
-Future<bool> checkDateFirebase(String roll, String email, String date) async {
+Future<bool> checkDateFirebase(String roll, String email, String date,String userId,String hostel) async {
   bool found = false;
   await _firestore
       .collection('students')
-      .where('email', isEqualTo: email)
+      .doc(userId)
       .get()
-      .then((QuerySnapshot querySnapshot) {
-    querySnapshot.docs.forEach((doc) {
-      print(doc.data());
-      if (doc['timestamp'] == date) {
-        print('****Timestamp found in firebase database****');
-        found = true;
-      }
-    });
+      .then((DocumentSnapshot documentSnapshot) {
+        print(documentSnapshot.data()['timestamp']);
+        print(date);
+        print(documentSnapshot.data()['hostel']);
+        print(hostel);
+        if(documentSnapshot.data()!= null && documentSnapshot.data().containsKey('timestamp') && documentSnapshot.data()['timestamp']==date && documentSnapshot.data()['hostel']==hostel)
+          {
+            print('****Timestamp found in firebase database****');
+            found = true;
+          }
   });
 
   return found;

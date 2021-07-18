@@ -46,6 +46,7 @@ abstract class LoginStoreBase with Store {
         'displayName': prefs.getString('displayName') ?? '0',
         'jobTitle': prefs.getString('jobTitle') ?? '0',
         'rollNumber': prefs.getString('rollNumber') ?? '0',
+        'hostel': prefs.getString('hostel') ?? ''
       });
       return true;
     } else {
@@ -84,11 +85,21 @@ abstract class LoginStoreBase with Store {
       print(data);
       print("data was printed");
       //check and compare mail and roll number in google sheet and assign hostel to shared prefs
-      Map checkedResult = await checkRollMess(data['surname'], data['mail']);
+      Map checkedResult = await checkRollMess(data['surname'], data['mail'],context);
       final prefs = await SharedPreferences.getInstance();
+      print(checkedResult);
+      if(checkedResult['isPresent'] == false)
+       {
+         Fluttertoast.showToast(msg: "Your data could not be found in selected hostel!");
+         Navigator.of(context).pushAndRemoveUntil(
+             MaterialPageRoute(builder: (_) => MicrosoftLogin()),
+                 (Route<dynamic> route) => false);
+         return;
+       }
       prefs.setString('displayName', data['displayName']);
       prefs.setString('jobTitle', data['jobTitle']);
       prefs.setString('rollNumber', checkedResult['roll']);
+      prefs.setString('hostel', checkedResult['hostel']);
       print("\n\n\n\nSetting data complete\n\n\n\n");
       final _auth = FirebaseAuth.instance;
 
@@ -128,6 +139,7 @@ abstract class LoginStoreBase with Store {
       'displayName': prefs.getString('displayName') ?? '0',
       'jobTitle': prefs.getString('jobTitle') ?? '0',
       'rollNumber': prefs.getString('rollNumber') ?? '0',
+      'hostel': prefs.getString('hostel') ?? ''
     });
 
     Navigator.of(context).pushAndRemoveUntil(

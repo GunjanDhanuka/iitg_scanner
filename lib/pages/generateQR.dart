@@ -82,6 +82,7 @@ class _QRGeneratorState extends State<QRGenerator> {
       String name = loginStore.userData['displayName'];
       String degree = loginStore.userData['jobTitle'];
       String rollNumber = loginStore.userData['rollNumber'];
+      String hostel = loginStore.userData['hostel'];
       DateTime now = DateTime.now();
       String month = now.month.toString().length == 1
           ? "0" + now.month.toString()
@@ -109,7 +110,8 @@ class _QRGeneratorState extends State<QRGenerator> {
           date: date,
           roll: rollNumber,
           name: name,
-          degree: degree);
+          degree: degree,
+          hostel: hostel);
 
       return SafeArea(
         child: Scaffold(
@@ -289,30 +291,30 @@ Future<void> updateStudentData(
     String date,
     String name,
     String roll,
-    String degree}) async {
+    String degree,String hostel}) async {
   bool present = false;
   DocumentReference previousDetails;
   await _firestore
       .collection('students')
-      .where('email', isEqualTo: email)
+      .doc(FirebaseAuth.instance.currentUser.uid)
       .get()
-      .then((QuerySnapshot querySnapshot) {
-    querySnapshot.docs.forEach((doc) {
-      //If the student is already present in the database, then just update the time.
-      if (doc['email'] == email) {
-        previousDetails = doc.reference;
-        print('****Student data found in firestore database*****');
-        present = true;
-      }
+      .then((DocumentSnapshot documentSnapshot) {
+        if(documentSnapshot.data()!=null && documentSnapshot.data().containsKey('email'))
+          {
+            print('****Student data found in firestore database*****');
+            present = true;
+          }
+        else {
+          present = false;
+        }
     });
-  });
 
   //If student not present already, add the student with current time.
 
   if (present) {
     return _firestore
         .collection('students')
-        .doc(previousDetails.id)
+        .doc(FirebaseAuth.instance.currentUser.uid)
         .update({'timestamp': date})
         .then((value) =>
             print("Student data and timestamp updated successfully."))
@@ -321,12 +323,14 @@ Future<void> updateStudentData(
     print('****Student data not found in firebase database.');
     return _firestore
         .collection('students')
-        .add({
+        .doc(FirebaseAuth.instance.currentUser.uid)
+        .set({
           'email': email,
           'name': name,
           'roll': roll,
           'degree': degree,
-          'timestamp': date
+          'hostel': hostel,
+          'timestamp': date,
         })
         .then((value) => print("Student Data and TimeStamp Added Successfully"))
         .catchError((error) => print("Failed to add user: $error"));
