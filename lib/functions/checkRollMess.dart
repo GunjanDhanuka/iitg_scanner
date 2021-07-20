@@ -13,6 +13,7 @@ onChangeDropdownItem(String item)
 }
 Map<dynamic,dynamic> data = new Map();
 Future<Map<dynamic, dynamic>> checkRollMess(String roll, String email,BuildContext context,{String givenHostel}) async {
+  bool loading = false;
   if(givenHostel!=null)
     {
       selectedIndex = hostels.indexOf(givenHostel);
@@ -69,12 +70,15 @@ Future<Map<dynamic, dynamic>> checkRollMess(String roll, String email,BuildConte
          return StatefulBuilder(builder: (context,stateSetter){
            return AlertDialog(
             actions: [
-              GestureDetector(
+              (loading)?Container():GestureDetector(
                 child: Padding(
                   padding: EdgeInsets.all(10),
                   child: Text('Submit',style: TextStyle(fontFamily: 'raleway', fontSize: 13, color: Colors.blue)),
                 ),
                 onTap: () async {
+                  stateSetter((){
+                    loading = true;
+                  });
                   print('clicked');
                   Map map = {'isPresent': false, 'roll': roll,'hostel': ''};
                   final GSheetsGet sheet = GSheetsGet(
@@ -110,18 +114,34 @@ Future<Map<dynamic, dynamic>> checkRollMess(String roll, String email,BuildConte
                     map['hostel'] = result.sheet.feed.title.text;
                     map['isPresent'] = true;
                   }
-                  Navigator.pop(context);
                   print(map);
                   stateSetter((){
                     data = map;
+                    loading = false;
                   });
+                  Navigator.pop(context);
                 },
               )
             ],
-            content: Container(
+            content:Container(
               width: MediaQuery.of(context).size.width-100,
               padding: EdgeInsets.symmetric(vertical: 20),
-              child: Column(
+              child:(loading)?Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: 30,
+                  ),
+                  Center(child: CircularProgressIndicator(),),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  Container(
+                    child: Text("Please wait as we match your credentials with our data-sheets",style: TextStyle(fontFamily: 'raleway', fontSize: 14, color: Colors.black,),textAlign: TextAlign.center,),
+                    width: MediaQuery.of(context).size.width-120,
+                  )
+                ],
+              ):Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Choose Your Hostel',style: TextStyle(fontFamily: 'raleway', fontSize: 17, color: Colors.black),),
